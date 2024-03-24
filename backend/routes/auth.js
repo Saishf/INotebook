@@ -55,4 +55,48 @@ router.post(
   }
 );
 
+//authneticate user using: Post {/api/auth/createuser}
+router.post(
+  "/login",
+  [
+    body("email", "enter a valid email").isEmail(),
+    body("password", "enter a valid password").exists(),
+  ],
+  async (req, res) => {
+    const result = validationResult(req);
+    if (!result.isEmpty()) {
+      return res.status(400).json({ errors: result.array() });
+    }
+
+    const {email,password} = req.body;
+
+    try{
+      let user = await User.findOne({email})
+      if(!user){
+        return res.status(400).json({error: "input correct crediantials"})
+      }
+
+      const comparepassword = await bcrypt.compare(password,user.password)
+
+      if(!comparepassword){
+        return res.status(400).json({error: "input correct crediantials"})
+      }
+
+      const data = {
+        user:{
+          id : user.id
+        }
+      }
+
+      const authtoken = jwt.sign(data,JWT_TOKEN);
+
+      res.json({authtoken});
+    }
+    catch (error) {
+      console.log(error.message);
+      res.status(500).send("internal server Error");
+    }
+
+  })
+
 module.exports = router;
